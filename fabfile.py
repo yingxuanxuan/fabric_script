@@ -1,5 +1,6 @@
 from urllib import request, response
 import json
+import logging; logging.basicConfig(level=logging.DEBUG)
 
 def can_access(api_key):
     req = request.Request('https://api.vultr.com/v1/auth/info')
@@ -10,22 +11,24 @@ def can_access(api_key):
 
             data = f.read()
             if not data:
-                print('Read data fail.')
+                logging.error('Read data fail.')
                 return False
+
+            logging.debug(f.info())
+            logging.debug(data.decode('utf-8'))
 
             obj = json.loads(data.decode('utf-8'))
             if not obj:
-                print('Parser json fail.')
+                logging.error('Parser json fail.')
                 return False
 
-            print('Access success.')
-            print('User: %s' % obj['name'])
-            print('Email: %s' % obj['email'])
+            logging.info('Access success.')
+            logging.info('User: %s, Email: %s' % (obj['email'], obj['name']))
             return True
 
     except BaseException as e:
-        print('Access fail.')
-        print(e)
+        logging.error('Access fail.')
+        logging.error(e)
         return False
 
 def get_server_by_id(api_key, id):
@@ -41,21 +44,24 @@ def get_server_by_id(api_key, id):
         with request.urlopen(req) as f:
             data = f.read()
             if not data:
-                print('Read data fail.')
+                logging.error('Read data fail.')
                 return None
+
+            logging.debug(f.info())
+            logging.debug(data.decode('utf-8'))
 
             obj = json.loads(data.decode('utf-8'))
             if not obj:
-                print('Parser json fail.')
+                logging.error('Parser json fail.')
                 return None
 
             if str(id) != obj.get('SUBID', None):
-                print('Get server error.')
+                logging.error('Get server error.')
             else:
-                print('Get server success.')
+                logging.info('Get server success.')
                 return obj
     except BaseException as e:
-        print(e)
+        logging.error(e)
         return None
 
 def get_server_by_tag(api_key, tag):
@@ -71,19 +77,22 @@ def get_server_by_tag(api_key, tag):
         with request.urlopen(req) as f:
             data = f.read()
             if not data:
-                print('Read data fail.')
+                logging.error('Read data fail.')
                 return None
+
+            logging.debug(f.info())
+            logging.debug(data.decode('utf-8'))
 
             obj = json.loads(data.decode('utf-8'))
             if not obj:
-                print('Parser json fail.')
+                logging.error('Parser json fail.')
                 return None
 
             if 0 == len(obj):
-                print('Get server error.')
+                logging.error('Get server error.')
             else:
-                print('Get server success.')
+                logging.info('Get server success.')
                 return obj
     except BaseException as e:
-        print(e)
+        logging.error(e)
         return None
