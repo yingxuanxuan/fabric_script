@@ -1,6 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from urllib import request, response, parse
-import json
-import logging; logging.basicConfig(level=logging.DEBUG)
+import json, time
+import logging; logging.basicConfig(level=logging.INFO);
+from fabric.api import local, env, run, settings, hosts, execute
 
 
 def can_access(api_key):
@@ -33,7 +37,7 @@ def can_access(api_key):
         return False
 
 
-def get_server_by_id(api_key, id):
+def _get_server_by_id(api_key, id):
     url = 'https://api.vultr.com/v1/server/list'
 
     if id:
@@ -68,7 +72,7 @@ def get_server_by_id(api_key, id):
         return None
 
 
-def get_server_list(api_key):
+def _get_server_list(api_key):
     req = request.Request('https://api.vultr.com/v1/server/list')
     req.add_header('API-Key', api_key)
 
@@ -87,37 +91,35 @@ def get_server_list(api_key):
                 logging.error('Parser json fail.')
                 return None
 
-            summary = {}
-            for server, info in obj.items():
-                summary[server] = {}
-                for k, v in info.items():
-                    if k in ['SUBID',
-                             'os',
-                             'ram',
-                             'disk',
-                             'main_ip',
-                             'vcpu_count',
-                             'location',
-                             'default_password',
-                             'pending_charges',
-                             'status',
-                             'cost_per_month',
-                             'current_bandwidth_gb',
-                             'allowed_bandwidth_gb',
-                             'power_status',
-                             'server_state',
-                             'label']:
-                        summary[server][k] = v
-
-            logging.info('Get server list:')
-            logging.info(json.dumps(summary, indent=2))
             return obj
     except BaseException as e:
         logging.error(e)
         return None
 
 
-def get_region_list():
+def get_server_list(api_key):
+    server_list = _get_server_list(api_key)
+    if not server_list:
+        return
+
+    for server, info in server_list.items():
+        logging.info('Server SUBID %s:' % server)
+        logging.info('    ' + 'label: ' + info['label'])
+        logging.info('    '+  'status: ' + info['power_status'])
+        logging.info('    '+  'os: ' + info['os'])
+        logging.info('    '+  'ram: ' + info['ram'])
+        logging.info('    '+  'disk: ' + info['disk'])
+        logging.info('    '+  'ip: ' + info['main_ip'])
+        logging.info('    '+  'cpu: ' + info['vcpu_count'])
+        logging.info('    '+  'pwd: ' + info['default_password'])
+        logging.info('    '+  'pending charge: ' + info['pending_charges'])
+        logging.info('    '+  'cost per month: ' + info['cost_per_month'])
+        logging.info('    '+  'use bandwidth: ' + str(info['current_bandwidth_gb']))
+        logging.info('    '+  'total bandwidth: ' + str(info['allowed_bandwidth_gb']))
+        logging.info('')
+
+
+def _get_region_list():
     req = request.Request('https://api.vultr.com/v1/regions/list')
 
     try:
@@ -135,15 +137,29 @@ def get_region_list():
                 logging.error('Parser json fail.')
                 return None
 
-            logging.info('Get region list:')
-            logging.info(json.dumps(obj, indent=2))
             return obj
     except BaseException as e:
         logging.error(e)
         return None
 
 
-def get_plan_list():
+def get_region_list():
+    region_list = _get_region_list()
+    if not region_list:
+        return
+
+    logging.info('DCID\tBLOCK_STORAGE\tDDOS_PROTECTION\tCOUNTRY\t\tDCNAME\t\tCONTINENT')
+
+    for dcid, info in region_list.items():
+        logging.info(info['DCID']
+                     + '\t' + str(info['block_storage'])
+                     + '\t\t' + str(info['ddos_protection'])
+                     + '\t\t' + info['country']
+                     + '\t\t' + info['name']
+                     + '\t\t' + info['continent'])
+
+
+def _get_plan_list():
     req = request.Request('https://api.vultr.com/v1/plans/list')
 
     try:
@@ -161,12 +177,25 @@ def get_plan_list():
                 logging.error('Parser json fail.')
                 return None
 
-            logging.info('Get plan list:')
-            logging.info(json.dumps(obj, indent=2))
             return obj
     except BaseException as e:
         logging.error(e)
         return None
+
+
+def get_plan_list():
+    plan_list = _get_plan_list()
+    if not plan_list:
+        return
+
+    logging.info('ID\tPRICE\tCPU\tDESCRIPTION\tPLAN_TYPE')
+
+    for plan_id, info in plan_list.items():
+        logging.info(info['VPSPLANID']
+                     + '\t' + info['price_per_month']
+                     + '\t' + info['vcpu_count']
+                     + '\t' + info['name']
+                     + '\t' + info['plan_type'])
 
 
 def is_region_available_plan(dc_id, plan_id):
@@ -198,7 +227,7 @@ def is_region_available_plan(dc_id, plan_id):
         return False
 
 
-def get_os_list():
+def _get_os_list():
     req = request.Request('https://api.vultr.com/v1/os/list')
 
     try:
@@ -216,12 +245,24 @@ def get_os_list():
                 logging.error('Parser json fail.')
                 return None
 
-            logging.info('Get os list:')
-            logging.info(json.dumps(obj, indent=2))
             return obj
     except BaseException as e:
         logging.error(e)
         return None
+
+
+def get_os_list():
+    os_list = _get_os_list()
+    if not os_list:
+        return
+
+    logging.info('ID\tARCH\tFAMILY\tNAME')
+
+    for os_id, info in os_list.items():
+        logging.info(os_id
+                     + '\t' + info['arch']
+                     + '\t' + info['family']
+                     + '\t' + info['name'])
 
 
 def create_server(api_key, label, dc_id, plan_id, os_id, hostname=None):
@@ -262,18 +303,97 @@ def create_server(api_key, label, dc_id, plan_id, os_id, hostname=None):
         return None
 
 
-def wait_until_ok(api_key, label):
+def wait_until_ok(api_key, label, wait = 300):
     '''
-    power status running/installing/
+    status: pending | active | suspended | closed
+    -> active -> power status: running/stopped/starting
+    -> active -> server status: none | locked | installingbooting | isomounting | ok
+
+    fab -f vultr.py create_server:KEY,shadowsocks,5,29,167
+    fab -f vultr.py print_server_list:KEY
+
+    status  powerstatus serverstatus
+    pending running     none
+    active  running     ok      <- All state is ok but not installed
+    active  stopped     locked
+    active  starting    ok
+    active  runnnig     ok
+
     '''
-    #test_state()
-    #ping()
-    #run('uname -a')
-    pass
+
+    #get server list
+    server_list =  _get_server_list(api_key)
+    if None == server_list:
+        logging.error("No server exist.")
+        return False
+
+    #find label subid
+    subid = None
+    for serverid, info in server_list.items():
+        if label == info['label']:
+            subid = serverid
+    server_ip = server_list[subid]['main_ip']
+    server_password = server_list[subid]['default_password']
+
+    #test server ping
+    def test_ping(ip):
+        with settings(warn_only=True):
+            result = local("ping -c 1 %s" % ip)
+            if result.failed:
+                logging.info('Ping ip %s fail.' % ip)
+                return False
+            else:
+                logging.info('Ping ip %s success.' % ip)
+                return True
+
+    #test server status
+    start_time = time.time()
+    while True:
+        if time.time() > start_time + wait:
+            logging.error('Server %s start timeout.' % label)
+            return False
+
+        try:
+            server_list = _get_server_list(api_key)
+            status = server_list[subid]['status']
+            power_status = server_list[subid]['power_status']
+            server_state = server_list[subid]['server_state']
+        except BaseException as e:
+            logging.error(e)
+            continue
+
+        logging.info('Server %s, status: %s, power status: %s, server status: %s'
+                     % (label, status, power_status, server_state))
+        if 'active' == status and 'running' == power_status and 'ok' == server_state:
+            logging.info('Server %s status ok' % label)
+            if test_ping(server_ip):
+                logging.info('Server %s start success.'% label)
+                break
+            else:
+                logging.info('Left %s seconds timeout.' % str(start_time + wait - time.time()))
+                time.sleep(5)
+        else:
+            logging.info('Left %s seconds timeout.' % str(start_time + wait - time.time()))
+            time.sleep(5)
+
+    #test server connect
+    try:
+        def test_task():
+            run('uname -n')
+        env.user = 'root'
+        env.hosts = [server_ip]
+        env.password = server_password
+        execute(test_task)
+        logging.info('Connect server success.')
+        return True
+    except BaseException as e:
+        logging.error('Connect server fail.')
+        logging.error(e)
+        return False
 
 
 def destroy_server_by_label(api_key, label):
-    server_list = get_server_list(api_key)
+    server_list = _get_server_list(api_key)
     if None == server_list:
         logging.error("No Server exist")
         return False
@@ -289,7 +409,7 @@ def destroy_server_by_label(api_key, label):
         return False
 
     logging.info("Find label %s, SUBID %s." % (label, SUBID))
-    destroy_server_by_id(SUBID)
+    destroy_server_by_id(api_key, SUBID)
     return True
 
 
@@ -311,7 +431,7 @@ def destroy_server_by_id(api_key, id):
 
 
 def get_ip_by_label(api_key, label):
-    server_list = get_server_list(api_key)
+    server_list = _get_server_list(api_key)
     if None == server_list:
         logging.error("No Server exist")
         return False
@@ -323,5 +443,4 @@ def get_ip_by_label(api_key, label):
 
     logging.error("Label %s not exist." % label)
     return None
-
 
