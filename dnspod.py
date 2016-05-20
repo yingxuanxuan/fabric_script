@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from urllib import request, parse
-import logging; logging.basicConfig(level=logging.DEBUG)
+import logging; logging.basicConfig(level=logging.INFO)
 import json
 
 
@@ -141,6 +141,21 @@ def get_record_list(token_id, token, domain_name, **kw):
         logging.error(e)
         return
 
+def _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_name):
+    response = _get_record_list(token_id, token, domain_id, sub_domain = sub_domain_name)
+    if None == response:
+        return None
+
+    try:
+        record_list = response['records']
+        for info in record_list:
+            logging.info('Domain id %s sub domain %s id %s' % (domain_id, sub_domain_name, info['id']))
+            return info['id']
+    except BaseException as e:
+        logging.error(e)
+
+    return None
+
 def _create_record(token_id, token, domain_id, sub_domain, record_type, value, record_line='默认', **kw):
     req = request.Request('https://dnsapi.cn/Record.Create')
     param_list = [('login_token', token_id + ',' + token),
@@ -185,21 +200,22 @@ def create_record(token_id, token, domain_name, sub_domain, record_type, value, 
     if None == domain_id:
         return False
 
-    return _create_record(token_id, token, domain_id, sub_domain, record_type, value, **kw):
+    return _create_record(token_id, token, domain_id, sub_domain, record_type, value, **kw)
 
 
-def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_record_type, new_value, record_line='默认', **kw):
-    req = request.Request('https://dnsapi.cn/Record.Create')
+def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_record_type, new_value, new_record_line='默认', **kw):
+    req = request.Request('https://dnsapi.cn/Record.Modify')
     param_list = [('login_token', token_id + ',' + token),
                   ('format','json'),
                   ('domain_id', domain_id),
-                  ('sub_domain', sub_domain),
-                  ('record_type', record_type),
-                  ('record_line', record_line),
-                  ('value', value)]
+                  ('record_id', record_id),
+                  ('sub_domain', new_sub_domain),
+                  ('record_type', new_record_type),
+                  ('record_line', new_record_line),
+                  ('value', new_value)]
     for k, v in kw.items():
-        if k in ['mx', 'ttl', 'status', 'weight']:
-            param_list.append((k, v))
+        if k in ['new_mx', 'new_ttl', 'new_status', 'new_weight']:
+            param_list.append((k[4:], v))
 
     try:
         with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
@@ -220,9 +236,21 @@ def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_re
                 logging.error(obj['status']['message'])
                 return False
 
-            logging.info('Create record success, record id %s' % obj['record']['id'])
+            logging.info('Modify record success')
             return True
 
     except BaseException as e:
         logging.error(e)
         return False
+
+
+def modify_record(token_id, token, domain_name, sub_domain_name, new_record_type, new_value, **kw):
+    domain_id = _get_domain_id_by_domain_name(token_id, token, domain_name)
+    if None == domain_id:
+        return False
+
+    record_id = _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_name)
+    if None == record_id:
+        return False
+
+    return _modify_record(token_id, token, domain_id, record_id, sub_domain_name, new_record_type, new_value, **kw)
