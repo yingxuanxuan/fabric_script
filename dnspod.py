@@ -125,7 +125,7 @@ def get_record_list(token_id, token, domain_name, **kw):
         record_list = response['records']
         logging.info('domain_id:%s, name:%s, owner:%s, sub_domains:%s, record_total:%s' %
                      (domain['id'], domain['name'], domain['owner'], domain_info['sub_domains'], domain_info['record_total']))
-        logging.info('RECORD_ID\tNAME\tLINE\tTYPE\tTTL\tMX\tSTATUS\tVALUE')
+        logging.info('RECORD_ID\tNAME\tLINE\tTYPE\tTTL\tMX\tENABLED\tVALUE')
         for record in record_list:
             logging.info(record['id']
                          + '\t' + record['name']
@@ -133,7 +133,7 @@ def get_record_list(token_id, token, domain_name, **kw):
                          + '\t' + record['type']
                          + '\t' + record['ttl']
                          + '\t' + record['mx']
-                         + '\t' + record['status']
+                         + '\t' + record['enabled']
                          + '\t' + record['value'])
         return
 
