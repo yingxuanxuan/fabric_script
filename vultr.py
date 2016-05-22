@@ -380,12 +380,12 @@ def wait_until_ok(api_key, label, wait = 300):
     try:
         def test_task():
             run('uname -n')
-        env.user = 'root'
-        env.hosts = [server_ip]
-        env.password = server_password
-        execute(test_task)
-        logging.info('Connect server success.')
-        return True
+
+        with settings(user='root', hosts=[server_ip], password=server_password):
+            execute(test_task)
+            logging.info('Connect server success.')
+            return True
+
     except BaseException as e:
         logging.error('Connect server fail.')
         logging.error(e)
