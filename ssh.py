@@ -4,7 +4,6 @@
 import logging;logging.basicConfig(level=logging.INFO)
 
 from fabric.api import sudo, settings, local, put, cd
-import os
 
 
 def _ssh_config(new_ssh_port):
@@ -33,18 +32,17 @@ def _add_user(adduser):
         result = sudo('id %s' % adduser)
         if result.failed:
             logging.info('user %s not exist.' % adduser)
+
+            #创建用户
+            sudo('useradd %s' % adduser)
         else:
             logging.info('user %s already exist.' % adduser)
-            return
-
-    #创建用户
-    sudo('useradd %s' % adduser)
 
     #添加到wheel组
     sudo('sudo usermod -G wheel %s ' % (adduser))
 
 
-def set_ssh_with_upload_key(adduser, key_filename, new_ssh_port):
+def set_ssh_with_upload_key(adduser, public_key_path, new_ssh_port):
     try:
         # add user
         _add_user(adduser)
@@ -56,10 +54,10 @@ def set_ssh_with_upload_key(adduser, key_filename, new_ssh_port):
         # add public key
 
         with cd('%s/.ssh/' % homepath):
-            put(key_filename + '.pub', '.')
-            sudo('cat %s.pub >> authorized_keys' % os.path.basename(key_filename))
+            put(public_key_path, './%s.pub' % adduser)
+            sudo('cat ./%s.pub >> authorized_keys' % adduser)
             sudo('chown %s:%s authorized_keys' % (adduser, adduser))
-            sudo('rm %s.pub' % os.path.basename(key_filename))
+            sudo('rm %s.pub' % adduser)
 
         # ssh config
         _ssh_config(new_ssh_port)
@@ -72,7 +70,7 @@ def set_ssh_with_upload_key(adduser, key_filename, new_ssh_port):
 def set_ssh_with_new_key(adduser, passphrase, key_filename, new_ssh_port):
     try:
         _ssh_keygen(passphrase, key_filename)
-        return set_ssh_with_upload_key(adduser, key_filename, new_ssh_port)
+        return set_ssh_with_upload_key(adduser, key_filename + '.pub', new_ssh_port)
 
     except BaseException as e:
         logging.error(e)
