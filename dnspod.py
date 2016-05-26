@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from urllib import request, parse
-import logging; logging.basicConfig(level=logging.INFO)
+import logging
 import json
+
+logging.basicConfig(level=logging.INFO)
 
 
 def _get_domain_list(token_id, token, **kw):
@@ -41,7 +43,7 @@ def _get_domain_list(token_id, token, **kw):
 
 def get_domain_list(token_id, token, **kw):
     response = _get_domain_list(token_id, token, **kw)
-    if None == response:
+    if response is None:
         return None
 
     try:
@@ -62,7 +64,7 @@ def get_domain_list(token_id, token, **kw):
 
 def _get_domain_id_by_domain_name(token_id, token, domain_name):
     response = _get_domain_list(token_id, token, keyword = domain_name)
-    if None == response:
+    if response is None:
         return None
 
     try:
@@ -112,11 +114,11 @@ def _get_record_list(token_id, token, domain_id, **kw):
 def get_record_list(token_id, token, domain_name, **kw):
 
     domain_id = _get_domain_id_by_domain_name(token_id, token, domain_name)
-    if None == domain_id:
+    if domain_id is None:
         return
 
     response = _get_record_list(token_id, token, domain_id, **kw)
-    if None == response:
+    if response is None:
         return None
 
     try:
@@ -127,23 +129,24 @@ def get_record_list(token_id, token, domain_name, **kw):
                      (domain['id'], domain['name'], domain['owner'], domain_info['sub_domains'], domain_info['record_total']))
         logging.info('RECORD_ID\tNAME\tLINE\tTYPE\tTTL\tMX\tENABLED\tVALUE')
         for record in record_list:
-            logging.info(record['id']
-                         + '\t' + record['name']
-                         + '\t' + record['line']
-                         + '\t' + record['type']
-                         + '\t' + record['ttl']
-                         + '\t' + record['mx']
-                         + '\t' + record['enabled']
-                         + '\t' + record['value'])
+            logging.info(record['id'] +
+                         '\t' + record['name'] +
+                         '\t' + record['line'] +
+                         '\t' + record['type'] +
+                         '\t' + record['ttl'] +
+                         '\t' + record['mx'] +
+                         '\t' + record['enabled'] +
+                         '\t' + record['value'])
         return
 
     except BaseException as e:
         logging.error(e)
         return
 
+
 def _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_name):
-    response = _get_record_list(token_id, token, domain_id, sub_domain = sub_domain_name)
-    if None == response:
+    response = _get_record_list(token_id, token, domain_id, sub_domain=sub_domain_name)
+    if response is None:
         return None
 
     try:
@@ -156,10 +159,11 @@ def _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_nam
 
     return None
 
+
 def _create_record(token_id, token, domain_id, sub_domain, record_type, value, record_line='默认', **kw):
     req = request.Request('https://dnsapi.cn/Record.Create')
     param_list = [('login_token', token_id + ',' + token),
-                  ('format','json'),
+                  ('format', 'json'),
                   ('domain_id', domain_id),
                   ('sub_domain', sub_domain),
                   ('record_type', record_type),
@@ -195,18 +199,20 @@ def _create_record(token_id, token, domain_id, sub_domain, record_type, value, r
         logging.error(e)
         return False
 
+
 def create_record(token_id, token, domain_name, sub_domain, record_type, value, **kw):
     domain_id = _get_domain_id_by_domain_name(token_id, token, domain_name)
-    if None == domain_id:
+    if domain_id is None:
         return False
 
     return _create_record(token_id, token, domain_id, sub_domain, record_type, value, **kw)
 
 
-def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_record_type, new_value, new_record_line='默认', **kw):
+def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_record_type, new_value,
+                   new_record_line='默认', **kw):
     req = request.Request('https://dnsapi.cn/Record.Modify')
     param_list = [('login_token', token_id + ',' + token),
-                  ('format','json'),
+                  ('format', 'json'),
                   ('domain_id', domain_id),
                   ('record_id', record_id),
                   ('sub_domain', new_sub_domain),
@@ -246,11 +252,11 @@ def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_re
 
 def modify_record(token_id, token, domain_name, sub_domain_name, new_record_type, new_value, **kw):
     domain_id = _get_domain_id_by_domain_name(token_id, token, domain_name)
-    if None == domain_id:
+    if domain_id is None:
         return False
 
     record_id = _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_name)
-    if None == record_id:
+    if record_id is None:
         return False
 
     return _modify_record(token_id, token, domain_id, record_id, sub_domain_name, new_record_type, new_value, **kw)

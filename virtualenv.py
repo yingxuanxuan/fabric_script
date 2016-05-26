@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging; logging.basicConfig(level=logging.INFO)
+import logging
 from fabric.api import sudo, cd
+
+logging.basicConfig(level=logging.INFO)
+
 
 def virtual_local_python(path=None, with_site_package=False):
     try:
@@ -22,6 +25,7 @@ def virtual_local_python(path=None, with_site_package=False):
         return False
 
     return True
+
 
 def virtual_python3(path=None, with_site_package=False):
     try:
@@ -54,6 +58,7 @@ def virtual_python3(path=None, with_site_package=False):
         return False
 
     return True
+
 
 def virtual_python2(path=None, with_site_package=False):
     try:
