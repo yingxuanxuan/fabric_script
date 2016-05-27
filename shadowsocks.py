@@ -11,11 +11,11 @@ def ssserver(port, password, method):
     try:
         sudo('hash yum')
         sudo('hash python')
-        sudo('yum -y update')
-        sudo('yum -y install python-setuptools')
-        sudo('yum -y install m2crypto')
-        sudo('easy_install pip')
-        sudo('pip install shadowsocks')
+        sudo('yum -y update  1>/dev/null')
+        sudo('yum -y install python-setuptools 1>/dev/null')
+        sudo('yum -y install m2crypto 1>/dev/null')
+        sudo('easy_install pip 1>/dev/null')
+        sudo('pip install shadowsocks 1>/dev/null')
         sudo('hash ssserver')
         sudo("sed -i '/ssserver/d' /etc/rc.d/rc.local")
         cmd = '/usr/bin/python /usr/bin/ssserver -p %s -k %s -m %s --user nobody -d start' % \
@@ -38,11 +38,11 @@ def sslocal(server_addr, server_port, server_password, method, local_port):
     try:
         sudo('hash yum')
         sudo('hash python')
-        sudo('yum -y update')
-        sudo('yum -y install python-setuptools')
-        sudo('yum -y install m2crypto')
-        sudo('easy_install pip')
-        sudo('pip install shadowsocks')
+        sudo('yum -y update 1>/dev/null')
+        sudo('yum -y install python-setuptools 1>/dev/null')
+        sudo('yum -y install m2crypto 1>/dev/null')
+        sudo('easy_install pip 1>/dev/null')
+        sudo('pip install shadowsocks 1>/dev/null')
         sudo('hash sslocal')
         sudo("sed -i '/sslocal /d' /etc/rc.d/rc.local")
         cmd = '/usr/bin/python /usr/bin/sslocal -s %s -p %s -k %s -m %s -b 0.0.0.0 -l %s --user nobody -d start' % \

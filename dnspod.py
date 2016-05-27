@@ -260,3 +260,52 @@ def modify_record(token_id, token, domain_name, sub_domain_name, new_record_type
         return False
 
     return _modify_record(token_id, token, domain_id, record_id, sub_domain_name, new_record_type, new_value, **kw)
+
+
+def _ddns_record(token_id, token, domain_id, record_id, new_sub_domain, new_value, new_record_line='默认'):
+    req = request.Request('https://dnsapi.cn/Record.Ddns')
+    param_list = [('login_token', token_id + ',' + token),
+                  ('format', 'json'),
+                  ('domain_id', domain_id),
+                  ('record_id', record_id),
+                  ('sub_domain', new_sub_domain),
+                  ('record_line', new_record_line),
+                  ('value', new_value)]
+
+    try:
+        with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
+            data = f.read()
+            if not data:
+                logging.error('Read data fail.')
+                return False
+
+            logging.debug(f.info())
+            logging.debug(data.decode('utf-8'))
+
+            obj = json.loads(data.decode('utf-8'))
+            if not obj:
+                logging.error('Parser json fail.')
+                return False
+
+            if '1' != obj['status']['code']:
+                logging.error(obj['status']['message'])
+                return False
+
+            logging.info('Ddns record success')
+            return True
+
+    except BaseException as e:
+        logging.error(e)
+        return False
+
+
+def ddns_record(token_id, token, domain_name, sub_domain_name, new_value):
+    domain_id = _get_domain_id_by_domain_name(token_id, token, domain_name)
+    if domain_id is None:
+        return False
+
+    record_id = _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_name)
+    if record_id is None:
+        return False
+
+    return _ddns_record(token_id, token, domain_id, record_id, sub_domain_name, new_value)

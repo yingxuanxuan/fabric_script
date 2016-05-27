@@ -43,7 +43,7 @@ def can_access(api_key):
 def get_server_by_label(api_key, label):
     server_list = _get_server_list(api_key)
     if server_list is None:
-        logging.error('No Server exist')
+        logging.error('No server exist')
         return None
 
     for server, info in server_list.items():
@@ -249,6 +249,23 @@ def get_os_list():
 
 
 def create_server(api_key, label, dc_id, plan_id, os_id, hostname=None):
+    server = get_server_by_label(api_key, label)
+    if server:
+        logging.error('Label %s already exists.' % label)
+        return None
+
+    if not is_region_available_plan(dc_id, plan_id):
+        logging.error('DC %s is not available plan %s.' % (dc_id, plan_id))
+        return None
+
+    os_list = _get_os_list()
+    if os_list is None:
+        return None
+
+    if os_id not in os_list:
+        logging.error('OS %s is not available.')
+        return None
+
     req = request.Request('https://api.vultr.com/v1/server/create')
     req.add_header('API-Key', api_key)
 
@@ -309,9 +326,6 @@ def wait_until_ok(api_key, label, wait=300):
         logging.error('Label %s not exist.' % label)
         return False
 
-    server_ip = server['main_ip']
-    server_password = server['default_password']
-
     # test server ping
     def test_ping(ip):
         with settings(warn_only=True):
@@ -335,31 +349,35 @@ def wait_until_ok(api_key, label, wait=300):
             status = server['status']
             power_status = server['power_status']
             server_state = server['server_state']
+            server_ip = server['main_ip']
         except BaseException as e:
             logging.error(e)
             continue
 
-        logging.info('Server %s, status: %s, power status: %s, server status: %s'
-                     % (label, status, power_status, server_state))
-        if 'active' == status and 'running' == power_status and 'ok' == server_state:
+        logging.info('Server %s, status: %s, power status: %s, server status: %s, ip: %s'
+                     % (label, status, power_status, server_state, server_ip))
+        if 'active' == status and 'running' == power_status and 'ok' == server_state and '0' != server_ip:
             logging.info('Server %s status ok' % label)
             if test_ping(server_ip):
-                logging.info('Server %s start success, wait for 30 second test login and execute command.'% label)
-                time.sleep(30)
+                logging.info('Server %s start success.' % label)
                 break
             else:
                 logging.info('Left %s seconds timeout.' % str(start_time + wait - time.time()))
-                time.sleep(30)
+                time.sleep(10)
         else:
             logging.info('Left %s seconds timeout.' % str(start_time + wait - time.time()))
-            time.sleep(30)
+            time.sleep(10)
+
+    # get ip and password from new server info, init ip is 0
+    server_ip = server['main_ip']
+    server_password = server['default_password']
 
     # test server connect
     try:
         def test_task():
             run('uname -n')
 
-        with settings(user='root', hosts=[server_ip], password=server_password):
+        with settings(user='root', hosts=[server_ip], password=server_password, no_keys=True):
             execute(test_task)
             logging.info('Connect server success.')
             return True
@@ -389,7 +407,7 @@ def destroy_server_by_id(api_key, id):
 def destroy_server_by_label(api_key, label):
     server = get_server_by_label(api_key, label)
     if server is None:
-        logging.error('No Server exist')
+        logging.error('No server exist')
         return False
 
     logging.info('Find label %s, SUBID %s.' % (label, server['SUBID']))
@@ -415,7 +433,7 @@ def reboot_server_by_id(api_key, id):
 def reboot_server_by_label(api_key, label):
     server = get_server_by_label(api_key, label)
     if server is None:
-        logging.error('No Server exist')
+        logging.error('No server exist')
         return False
 
     logging.info('Find label %s, SUBID %s.' % (label, server['SUBID']))
