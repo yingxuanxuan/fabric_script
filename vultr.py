@@ -1,7 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from urllib import request, response, parse
+try:
+    # python3
+    from urllib.request import Request, urlopen
+    from urllib.parse import urlencode
+except ImportError:
+    # python2
+    from urllib2 import Request, urlopen
+    from urllib import urlencode
+
 from fabric.api import local, env, run, settings, hosts, execute
 import json
 import time
@@ -11,28 +19,28 @@ logging.basicConfig(level=logging.INFO)
 
 
 def can_access(api_key):
-    req = request.Request('https://api.vultr.com/v1/auth/info')
+    req = Request('https://api.vultr.com/v1/auth/info')
     req.add_header('API-Key', api_key)
 
     try:
-        with request.urlopen(req) as f:
+        f = urlopen(req)
 
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return False
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return False
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return False
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return False
 
-            logging.info('Access success.')
-            logging.info('User: %s, Email: %s' % (obj['email'], obj['name']))
-            return True
+        logging.info('Access success.')
+        logging.info('User: %s, Email: %s' % (obj['email'], obj['name']))
+        return True
 
     except BaseException as e:
         logging.error('Access fail.')
@@ -56,25 +64,25 @@ def get_server_by_label(api_key, label):
 
 
 def _get_server_list(api_key):
-    req = request.Request('https://api.vultr.com/v1/server/list')
+    req = Request('https://api.vultr.com/v1/server/list')
     req.add_header('API-Key', api_key)
 
     try:
-        with request.urlopen(req) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req)
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            return obj
+        return obj
     except BaseException as e:
         logging.error(e)
         return None
@@ -103,24 +111,24 @@ def get_server_list(api_key):
 
 
 def _get_region_list():
-    req = request.Request('https://api.vultr.com/v1/regions/list')
+    req = Request('https://api.vultr.com/v1/regions/list')
 
     try:
-        with request.urlopen(req) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req)
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            return obj
+        return obj
     except BaseException as e:
         logging.error(e)
         return None
@@ -143,24 +151,24 @@ def get_region_list():
 
 
 def _get_plan_list():
-    req = request.Request('https://api.vultr.com/v1/plans/list')
+    req = Request('https://api.vultr.com/v1/plans/list')
 
     try:
-        with request.urlopen(req) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req)
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            return obj
+        return obj
     except BaseException as e:
         logging.error(e)
         return None
@@ -182,53 +190,53 @@ def get_plan_list():
 
 
 def is_region_available_plan(dc_id, plan_id):
-    req = request.Request('https://api.vultr.com/v1/regions/availability?DCID=%s' % dc_id)
+    req = Request('https://api.vultr.com/v1/regions/availability?DCID=%s' % dc_id)
 
     try:
-        with request.urlopen(req) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return False
+        f = urlopen(req)
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return False
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return False
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return False
 
-            if int(plan_id) not in obj:
-                logging.error('Plan %s not available in dc %s.' % (plan_id, dc_id))
-                return False
-            else:
-                logging.info('Plan %s available in dc %s.' % (plan_id, dc_id))
-                return True
+        if int(plan_id) not in obj:
+            logging.error('Plan %s not available in dc %s.' % (plan_id, dc_id))
+            return False
+        else:
+            logging.info('Plan %s available in dc %s.' % (plan_id, dc_id))
+            return True
     except BaseException as e:
         logging.error(e)
         return False
 
 
 def _get_os_list():
-    req = request.Request('https://api.vultr.com/v1/os/list')
+    req = Request('https://api.vultr.com/v1/os/list')
 
     try:
-        with request.urlopen(req) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req)
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            return obj
+        return obj
     except BaseException as e:
         logging.error(e)
         return None
@@ -266,10 +274,10 @@ def create_server(api_key, label, dc_id, plan_id, os_id, hostname=None):
         logging.error('OS %s is not available.')
         return None
 
-    req = request.Request('https://api.vultr.com/v1/server/create')
+    req = Request('https://api.vultr.com/v1/server/create')
     req.add_header('API-Key', api_key)
 
-    post = parse.urlencode([
+    post = urlencode([
         ('DCID', dc_id),
         ('VPSPLANID', plan_id),
         ('OSID', os_id),
@@ -277,26 +285,26 @@ def create_server(api_key, label, dc_id, plan_id, os_id, hostname=None):
         ('hostname', hostname if hostname else label)])
 
     try:
-        with request.urlopen(req, data=post.encode('utf-8')) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req, data=post.encode('utf-8'))
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            if obj.get('SUBID', None) is None:
-                logging.error('Create server fail.')
-                return None
-            else:
-                logging.info('Create server success, SUBID=%s.' % obj['SUBID'])
-                return obj['SUBID']
+        if obj.get('SUBID', None) is None:
+            logging.error('Create server fail.')
+            return None
+        else:
+            logging.info('Create server success, SUBID=%s.' % obj['SUBID'])
+            return obj['SUBID']
     except BaseException as e:
         logging.error(e)
         return None
@@ -389,15 +397,15 @@ def wait_until_ok(api_key, label, wait=300):
 
 
 def destroy_server_by_id(api_key, id):
-    req = request.Request('https://api.vultr.com/v1/server/destroy')
+    req = Request('https://api.vultr.com/v1/server/destroy')
     req.add_header('API-Key', api_key)
-    post = parse.urlencode([('SUBID', id), ])
+    post = urlencode([('SUBID', id), ])
 
     try:
-        with request.urlopen(req, data=post.encode('utf-8')) as f:
-            logging.debug(f.info())
-            logging.info('Destroy server success, SUBID=%s.' % id)
-            return True
+        f = urlopen(req, data=post.encode('utf-8'))
+        logging.debug(f.info())
+        logging.info('Destroy server success, SUBID=%s.' % id)
+        return True
     except BaseException as e:
         logging.info('Destroy server fail, SUBID=%s.' % id)
         logging.error(e)
@@ -415,15 +423,15 @@ def destroy_server_by_label(api_key, label):
 
 
 def reboot_server_by_id(api_key, id):
-    req = request.Request('https://api.vultr.com/v1/server/reboot')
+    req = Request('https://api.vultr.com/v1/server/reboot')
     req.add_header('API-Key', api_key)
-    post = parse.urlencode([('SUBID', id), ])
+    post = urlencode([('SUBID', id), ])
 
     try:
-        with request.urlopen(req, data=post.encode('utf-8')) as f:
-            logging.debug(f.info())
-            logging.info('Reboot server success, SUBID=%s.' % id)
-            return True
+        f = urlopen(req, data=post.encode('utf-8'))
+        logging.debug(f.info())
+        logging.info('Reboot server success, SUBID=%s.' % id)
+        return True
     except BaseException as e:
         logging.info('Reboot server fail, SUBID=%s.' % id)
         logging.error(e)

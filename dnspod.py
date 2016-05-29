@@ -1,7 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from urllib import request, parse
+try:
+    # python3
+    from urllib.request import Request, urlopen
+    from urllib.parse import urlencode
+except ImportError:
+    # python2
+    from urllib2 import Request, urlopen
+    from urllib import urlencode
+
 import logging
 import json
 
@@ -9,32 +17,32 @@ logging.basicConfig(level=logging.INFO)
 
 
 def _get_domain_list(token_id, token, **kw):
-    req = request.Request('https://dnsapi.cn/Domain.List')
+    req = Request('https://dnsapi.cn/Domain.List')
     param_list = [('login_token', token_id + ',' + token), ('format','json')]
     for k, v in kw.items():
         if k in ['type', 'offset', 'length', 'group_id', 'keyword' ]:
             param_list.append((k, v))
 
     try:
-        with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req, data=urlencode(param_list).encode('utf-8'))
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            if '1' != obj['status']['code']:
-                logging.error(obj['status']['message'])
-                return None
+        if '1' != obj['status']['code']:
+            logging.error(obj['status']['message'])
+            return None
 
-            return obj
+        return obj
 
     except BaseException as e:
         logging.error(e)
@@ -79,32 +87,32 @@ def _get_domain_id_by_domain_name(token_id, token, domain_name):
 
 
 def _get_record_list(token_id, token, domain_id, **kw):
-    req = request.Request('https://dnsapi.cn/Record.List')
+    req = Request('https://dnsapi.cn/Record.List')
     param_list = [('login_token', token_id + ',' + token), ('format','json'), ('domain_id', domain_id)]
     for k, v in kw.items():
         if k in ['offset', 'length', 'sub_domain', 'keyword' ]:
             param_list.append((k, v))
 
     try:
-        with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return None
+        f = urlopen(req, data=urlencode(param_list).encode('utf-8'))
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return None
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return None
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return None
 
-            if '1' != obj['status']['code']:
-                logging.error(obj['status']['message'])
-                return None
+        if '1' != obj['status']['code']:
+            logging.error(obj['status']['message'])
+            return None
 
-            return obj
+        return obj
 
     except BaseException as e:
         logging.error(e)
@@ -161,7 +169,7 @@ def _get_record_id_by_sub_domain_name(token_id, token, domain_id, sub_domain_nam
 
 
 def _create_record(token_id, token, domain_id, sub_domain, record_type, value, record_line='默认', **kw):
-    req = request.Request('https://dnsapi.cn/Record.Create')
+    req = Request('https://dnsapi.cn/Record.Create')
     param_list = [('login_token', token_id + ',' + token),
                   ('format', 'json'),
                   ('domain_id', domain_id),
@@ -174,26 +182,26 @@ def _create_record(token_id, token, domain_id, sub_domain, record_type, value, r
             param_list.append((k, v))
 
     try:
-        with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return False
+        f = urlopen(req, data=urlencode(param_list).encode('utf-8'))
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return False
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return False
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return False
 
-            if '1' != obj['status']['code']:
-                logging.error(obj['status']['message'])
-                return False
+        if '1' != obj['status']['code']:
+            logging.error(obj['status']['message'])
+            return False
 
-            logging.info('Create record success, record id %s' % obj['record']['id'])
-            return True
+        logging.info('Create record success, record id %s' % obj['record']['id'])
+        return True
 
     except BaseException as e:
         logging.error(e)
@@ -210,7 +218,7 @@ def create_record(token_id, token, domain_name, sub_domain, record_type, value, 
 
 def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_record_type, new_value,
                    new_record_line='默认', **kw):
-    req = request.Request('https://dnsapi.cn/Record.Modify')
+    req = Request('https://dnsapi.cn/Record.Modify')
     param_list = [('login_token', token_id + ',' + token),
                   ('format', 'json'),
                   ('domain_id', domain_id),
@@ -224,26 +232,26 @@ def _modify_record(token_id, token, domain_id, record_id, new_sub_domain, new_re
             param_list.append((k[4:], v))
 
     try:
-        with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return False
+        f = urlopen(req, data=urlencode(param_list).encode('utf-8'))
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return False
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return False
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return False
 
-            if '1' != obj['status']['code']:
-                logging.error(obj['status']['message'])
-                return False
+        if '1' != obj['status']['code']:
+            logging.error(obj['status']['message'])
+            return False
 
-            logging.info('Modify record success')
-            return True
+        logging.info('Modify record success')
+        return True
 
     except BaseException as e:
         logging.error(e)
@@ -263,7 +271,7 @@ def modify_record(token_id, token, domain_name, sub_domain_name, new_record_type
 
 
 def _ddns_record(token_id, token, domain_id, record_id, new_sub_domain, new_value, new_record_line='默认'):
-    req = request.Request('https://dnsapi.cn/Record.Ddns')
+    req = Request('https://dnsapi.cn/Record.Ddns')
     param_list = [('login_token', token_id + ',' + token),
                   ('format', 'json'),
                   ('domain_id', domain_id),
@@ -273,26 +281,26 @@ def _ddns_record(token_id, token, domain_id, record_id, new_sub_domain, new_valu
                   ('value', new_value)]
 
     try:
-        with request.urlopen(req, data=parse.urlencode(param_list).encode('utf-8')) as f:
-            data = f.read()
-            if not data:
-                logging.error('Read data fail.')
-                return False
+        f = urlopen(req, data=urlencode(param_list).encode('utf-8'))
+        data = f.read()
+        if not data:
+            logging.error('Read data fail.')
+            return False
 
-            logging.debug(f.info())
-            logging.debug(data.decode('utf-8'))
+        logging.debug(f.info())
+        logging.debug(data.decode('utf-8'))
 
-            obj = json.loads(data.decode('utf-8'))
-            if not obj:
-                logging.error('Parser json fail.')
-                return False
+        obj = json.loads(data.decode('utf-8'))
+        if not obj:
+            logging.error('Parser json fail.')
+            return False
 
-            if '1' != obj['status']['code']:
-                logging.error(obj['status']['message'])
-                return False
+        if '1' != obj['status']['code']:
+            logging.error(obj['status']['message'])
+            return False
 
-            logging.info('Ddns record success')
-            return True
+        logging.info('Ddns record success')
+        return True
 
     except BaseException as e:
         logging.error(e)

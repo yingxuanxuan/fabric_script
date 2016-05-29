@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import logging
@@ -16,14 +16,23 @@ def _ssh_config(new_ssh_port):
     # 更换端口
     sudo("sed -i '/^Port /d' /etc/ssh/sshd_config")
     sudo("sed -i '/^#Port/a Port %s' /etc/ssh/sshd_config" % new_ssh_port)
+    # 安装firewalld
+    sudo('yum -y update 1>/dev/null')
+    sudo('yum -y install firewalld 1>/dev/null')
+    sudo('systemctl enable firewalld')
+    sudo('systemctl start firewalld')
     # 打开新端口
-    sudo("firewall-cmd --zone=public --add-port=%s/tcp --permanent" % new_ssh_port)
+    sudo('firewall-cmd --zone=public --add-port=%s/tcp --permanent' % new_ssh_port)
     # 关闭旧端口
-    sudo("firewall-cmd --zone=public --remove-service=ssh --permanent")
+    sudo('firewall-cmd --zone=public --remove-service=ssh --permanent')
+    # selinux
+    #sudo('semanage port -a -t ssh_port_t -p tcp $s' % new_ssh_port)
+    sudo('setenforce 0')
+    sudo("sed -i '/^SELINUX=/s/enforcing/disabled/' /etc/selinux/config")
     # 重启sshd
-    sudo("systemctl restart sshd.service")
+    sudo('systemctl restart sshd.service')
     # 重启防火墙
-    sudo("firewall-cmd --reload")
+    sudo('firewall-cmd --reload')
 
 
 def _ssh_keygen(passphrase, key_filename):
@@ -58,7 +67,7 @@ def set_ssh_with_upload_key(adduser, public_key_path, new_ssh_port):
         # add public key
 
         with cd('%s/.ssh/' % homepath):
-            put(public_key_path, './%s.pub' % adduser)
+            put(public_key_path, '%s.pub' % adduser)
             sudo('cat ./%s.pub >> authorized_keys' % adduser)
             sudo('chown %s:%s authorized_keys' % (adduser, adduser))
             sudo('rm %s.pub' % adduser)
