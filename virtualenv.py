@@ -6,14 +6,34 @@ from fabric.api import sudo, cd
 
 logging.basicConfig(level=logging.INFO)
 
+def set_python_mirror(username):
+    # get home path
+    output = sudo('eval echo ~%s' % username)
+    homepath = output.split("/n")[0]
+
+    # easy_install
+    easy_str = '''[easy_install]
+index_url=http://mirrors.aliyun.com/pypi/simple/
+'''
+    sudo("echo '%s' > %s/.pydistutils.cfg" % (easy_str, homepath))
+
+    # pip
+    pip_str = '''[global]
+index-url=http://mirrors.aliyun.com/pypi/simple/
+
+[install]
+trusted-host=mirrors.aliyun.com
+'''
+    sudo('mkdir -p %s/.pip' % homepath)
+    sudo("echo '%s' > %s/.pip/pip.cfg" % (pip_str, homepath))
+    sudo('chown -R %s:%s %s/.pip' % (username, username, homepath))
+
 
 def virtual_local_python(path=None, with_site_package=False):
     try:
         virtualenv_path = path if path else '/usr/local/pylocal_env'
         site_package = '' if with_site_package else '--no-site-package'
 
-        sudo('hash yum')
-        sudo('hash python')
         sudo('yum -y update')
         sudo('yum -y install python-setuptools')
         sudo('easy_install pip')
@@ -32,14 +52,17 @@ def virtual_python3(path=None, with_site_package=False):
         virtualenv_path = path if path else '/usr/local/py3_env'
         site_package = '' if with_site_package else '--no-site-package'
 
-        sudo('hash yum')
-        sudo('hash python')
         sudo('yum -y update 1>/dev/null')
         sudo('yum -y install python-setuptools 1>/dev/null')
+        sudo('yum -y install wget 1>/dev/null')
+        sudo('yum -y install tar 1>/dev/null')
+
         sudo('easy_install pip 1>/dev/null')
         sudo('pip install virtualenv 1>/dev/null')
+
         sudo('wget https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tar.xz -O Python-3.5.1.tar.xz')
         sudo('tar -Jxf Python-3.5.1.tar.xz')
+
         with cd("Python-3.5.1"):
             sudo('yum -y install make 1>/dev/null')
             sudo('yum -y install gcc 1>/dev/null')
@@ -65,14 +88,17 @@ def virtual_python2(path=None, with_site_package=False):
         virtualenv_path = path if path else '/usr/local/py2_env'
         site_package = '' if with_site_package else '--no-site-package'
 
-        sudo('hash yum')
-        sudo('hash python')
         sudo('yum -y update 1>/dev/null')
         sudo('yum -y install python-setuptools 1>/dev/null')
+        sudo('yum -y install wget 1>/dev/null')
+        sudo('yum -y install tar 1>/dev/null')
+
         sudo('easy_install pip 1>/dev/null')
         sudo('pip install virtualenv 1>/dev/null')
+
         sudo('wget https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tar.xz -O Python-2.7.11.tar.xz')
         sudo('tar -Jxf Python-2.7.11.tar.xz')
+
         with cd("Python-2.7.11"):
             sudo('yum -y install make 1>/dev/null')
             sudo('yum -y install gcc 1>/dev/null')
